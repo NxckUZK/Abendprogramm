@@ -9,6 +9,7 @@
  *   local "times"          -> { date, perGame: { gameId: seconds }, activeId, since }
  *   local "history"        -> { "YYYY-MM-DD": { done: [{id,name,url,seconds}], total } }
  *   local "meta"           -> { streak, best, lastFullDate }
+ *   local "stats"          -> { "YYYY-MM-DD": { gameId: { ...parsed, capturedAt } } }
  */
 
 const DEFAULT_GAMES = [
@@ -22,7 +23,7 @@ const I18N = {
   en: {
     countLabel: 'done today', nextBtn: 'Done → next', openAll: 'Open all',
     resetToday: 'Reset today', manageGames: 'Manage games', openCalendar: 'Calendar',
-    timerTotal: 'total',
+    timerTotal: 'total', scoreTotal: 'pts tonight',
     emptyTitle: 'No games yet', emptySub: 'Add the games your group plays each night.',
     emptyAdd: 'Add a game',
     allGroupsOffTitle: 'All groups off', allGroupsOffSub: 'Turn a group back on to start.',
@@ -42,11 +43,16 @@ const I18N = {
     calCompleted: 'completed', calTotalTime: 'Total time',
     calEmpty: 'Nothing tracked on this day.', calPick: 'Pick a day to see details.',
     calNoData: 'No days tracked yet. Finish some games tonight!',
+    statsTitle: 'Game stats', openStats: 'Stats',
+    statsSub: 'Per-game results, captured automatically when you hit Share.',
+    statsPlayed: 'played', statsAvg: 'avg', statsBest: 'best', statsLast: 'last',
+    statsEmpty: 'No stats yet. Play a supported game and press Share — your result lands here.',
+    statsScoreHint: 'Score is normalised 0–100 so different games compare.',
   },
   de: {
     countLabel: 'heute erledigt', nextBtn: 'Fertig → weiter', openAll: 'Alle öffnen',
     resetToday: 'Heute zurücksetzen', manageGames: 'Spiele verwalten', openCalendar: 'Kalender',
-    timerTotal: 'gesamt',
+    timerTotal: 'gesamt', scoreTotal: 'Pkt heute',
     emptyTitle: 'Noch keine Spiele', emptySub: 'Füge die Spiele hinzu, die ihr jeden Abend spielt.',
     emptyAdd: 'Spiel hinzufügen',
     allGroupsOffTitle: 'Alle Gruppen aus', allGroupsOffSub: 'Schalte eine Gruppe wieder ein, um zu starten.',
@@ -66,6 +72,11 @@ const I18N = {
     calCompleted: 'erledigt', calTotalTime: 'Gesamtzeit',
     calEmpty: 'An diesem Tag nichts erfasst.', calPick: 'Wähle einen Tag für Details.',
     calNoData: 'Noch keine Tage erfasst. Schafft heute Abend ein paar Spiele!',
+    statsTitle: 'Spiel-Statistiken', openStats: 'Statistiken',
+    statsSub: 'Ergebnisse pro Spiel — automatisch erfasst, wenn ihr auf Teilen drückt.',
+    statsPlayed: 'gespielt', statsAvg: 'Ø', statsBest: 'Bestwert', statsLast: 'zuletzt',
+    statsEmpty: 'Noch keine Stats. Spiel ein unterstütztes Spiel und drück Teilen — dein Ergebnis landet hier.',
+    statsScoreHint: 'Score ist auf 0–100 normalisiert, damit Spiele vergleichbar sind.',
   },
 };
 
@@ -223,6 +234,65 @@ async function recordHistory() {
   if (done.length === 0 && total === 0) delete hist[todayStr()];
   else hist[todayStr()] = { done, total };
   await localSet({ history: hist });
+}
+
+/* ---------------- parsed game stats ---------------- */
+async function getStats() { return await localGet('stats', {}); }
+
+// Store one game's parsed share result under today's date. Last write wins,
+// so re-sharing the same game just refreshes it.
+async function saveStat(gameId, payload) {
+  if (!gameId) return;
+  const stats = await getStats();
+  const day = stats[todayStr()] || {};
+  day[gameId] = { ...payload, capturedAt: Date.now() };
+  stats[todayStr()] = day;
+  await localSet({ stats });
+}
+
+// Aggregate the per-day stats store into one summary per game, oldest→newest.
+// Generic on purpose: any parser that returns { score, display } shows up here
+// with no extra wiring.
+async function getGameStats() {
+  const store = await getStats();
+  const games = await getGames();
+  const byId = Object.fromEntries(games.map((g) => [g.id, g]));
+
+  const acc = {};
+  Object.keys(store).sort().forEach((date) => {
+    const day = store[date] || {};
+    Object.keys(day).forEach((id) => {
+      const s = day[id];
+      if (!acc[id]) {
+        const g = byId[id];
+        // Prefer the user's game entry for name/url; fall back to what the
+        // parser captured (page URL) so favicons still resolve.
+        acc[id] = { id, name: g ? g.name || id : id, url: (g && g.url) || s.url || '', entries: [] };
+      }
+      acc[id].entries.push({
+        date,
+        score: typeof s.score === 'number' ? s.score : null,
+        display: s.display || '',
+        solved: s.solved,
+      });
+    });
+  });
+
+  return Object.values(acc)
+    .map((g) => {
+      const scores = g.entries.map((e) => e.score).filter((n) => typeof n === 'number');
+      const best = scores.length ? Math.max(...scores) : null;
+      const bestEntry = g.entries.filter((e) => e.score === best).slice(-1)[0] || null;
+      return {
+        ...g,
+        played: g.entries.length,
+        avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+        best,
+        bestDisplay: bestEntry ? bestEntry.display : '',
+        last: g.entries[g.entries.length - 1] || null,
+      };
+    })
+    .sort((a, b) => b.played - a.played);
 }
 
 async function getSummary() {

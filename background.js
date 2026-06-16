@@ -31,3 +31,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   await updateBadge();
   scheduleMidnightAlarm();
 });
+
+// Parsed game stats arrive here from adapters/relay.js (via stats.js).
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && msg.type === 'abendprogramm-stat' && msg.stat) {
+    saveStat(msg.stat.game, msg.stat).then(() => sendResponse({ ok: true }));
+    return true; // keep the channel open for the async response
+  }
+});

@@ -11,6 +11,7 @@ async function render() {
 
   const { allGames, games, done, total, doneMap, groups, disabled } = await getSummary();
   const times = await getTimes();
+  const stats = (await getStats())[todayStr()] || {};
 
   $('#done-count').textContent = done;
   $('#total-count').textContent = total;
@@ -25,6 +26,12 @@ async function render() {
 
   const meta = await getMeta();
   $('#streak').textContent = meta.streak > 0 ? t(lang, 'streak', { n: meta.streak }) : '';
+
+  // Tonight's total score = sum of every captured game's normalised points.
+  const captured = Object.values(stats);
+  const totalScore = captured.reduce((a, s) => a + (s.score || 0), 0);
+  $('#score').hidden = captured.length === 0;
+  $('#score-total').textContent = totalScore;
 
   // Group filter chips (built atomically to avoid duplicate-render races).
   const chipFrag = document.createDocumentFragment();
@@ -58,12 +65,12 @@ async function render() {
   list.hidden = false;
   empty.hidden = true;
   const frag = document.createDocumentFragment();
-  games.forEach((g) => frag.appendChild(rowEl(g, !!doneMap[g.id], times)));
+  games.forEach((g) => frag.appendChild(rowEl(g, !!doneMap[g.id], times, stats[g.id])));
   list.replaceChildren(frag);
   updateTimerUI(times);
 }
 
-function rowEl(game, isDone, times) {
+function rowEl(game, isDone, times, stat) {
   const li = document.createElement('li');
   li.className = 'game' + (isDone ? ' done' : '') + (times.activeId === game.id ? ' active' : '');
   li.dataset.id = game.id;
@@ -108,6 +115,15 @@ function rowEl(game, isDone, times) {
   time.textContent = formatTime(times.perGame[game.id] || 0);
 
   li.append(check, fav, open, time);
+
+  // Captured share result, if any: show the score (e.g. "3/6").
+  if (stat && stat.display) {
+    const badge = document.createElement('span');
+    badge.className = 'game-score' + (stat.solved === false ? ' lost' : '');
+    badge.textContent = stat.display;
+    badge.title = `${stat.score || 0} pts`;
+    li.append(badge);
+  }
   return li;
 }
 
@@ -177,6 +193,7 @@ window.addEventListener('pagehide', () => { tickFlush(); });
 
 $('#open-next').addEventListener('click', advance);
 $('#open-all').addEventListener('click', openAll);
+$('#open-stats').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('stats.html') }));
 $('#open-calendar').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('history.html') }));
 $('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 $('#empty-add').addEventListener('click', () => chrome.runtime.openOptionsPage());

@@ -11,5 +11,19 @@
   "side_panel": { "default_path": "sidepanel.html" },
   "options_page": "options.html",
   "background": { "service_worker": "background.js" },
-  "permissions": ["storage", "tabs", "tabGroups", "alarms", "sidePanel", "favicon"]
+  "content_scripts": [
+    {
+      "matches": ["*://www.nytimes.com/games/wordle/*", "*://*.timeguessr.com/*", "*://*.travle.earth/*"],
+      "js": ["adapters/parsers.js", "adapters/stats.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://www.nytimes.com/games/wordle/*", "*://*.timeguessr.com/*", "*://*.travle.earth/*"],
+      "js": ["adapters/relay.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": ["storage", "tabs", "tabGroups", "alarms", "sidePanel", "favicon"],
+  "host_permissions": ["*://www.nytimes.com/games/wordle/*", "*://*.timeguessr.com/*", "*://*.travle.earth/*"]
 }
