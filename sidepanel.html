@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="panel">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">Abendprogramm</span>
+    </div>
+    <div class="top-actions">
+      <button id="open-calendar" class="icon-btn"
+              data-i18n-title="openCalendar" data-i18n-aria="openCalendar">📅</button>
+      <button id="open-options" class="icon-btn"
+              data-i18n-title="manageGames" data-i18n-aria="manageGames">⚙</button>
+    </div>
+  </header>
+
+  <section class="scoreboard">
+    <div class="count">
+      <span id="done-count">0</span><span class="slash">/</span><span id="total-count">0</span>
+    </div>
+    <div class="count-label" data-i18n="countLabel"></div>
+    <div id="tokens" class="tokens" aria-hidden="true"></div>
+    <div id="timer" class="timer">⏱ <span id="timer-total">0:00</span> <span class="timer-label" data-i18n="timerTotal"></span></div>
+    <div id="streak" class="streak"></div>
+  </section>
+
+  <div id="group-chips" class="group-chips" hidden></div>
+
+  <div class="actions">
+    <button id="open-next" class="btn btn-primary" data-i18n="nextBtn"></button>
+    <button id="open-all" class="btn btn-ghost" data-i18n="openAll"></button>
+  </div>
+
+  <ul id="game-list" class="game-list"></ul>
+
+  <div id="empty" class="empty" hidden>
+    <p id="empty-title" class="empty-title"></p>
+    <p id="empty-sub" class="empty-sub"></p>
+    <button id="empty-add" class="btn btn-primary" data-i18n="emptyAdd"></button>
+  </div>
+
+  <footer class="footer">
+    <button id="reset-day" class="link-btn" data-i18n="resetToday"></button>
+  </footer>
+
+  <script src="lib.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

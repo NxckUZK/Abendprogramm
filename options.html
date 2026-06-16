@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="options">
+  <main class="wrap">
+    <header class="opt-head">
+      <span class="brand-mark big">◆</span>
+      <div class="head-row">
+        <h1 data-i18n="optTitle"></h1>
+        <div class="lang" role="group">
+          <span class="lang-label" data-i18n="langLabel"></span>
+          <button id="lang-en" class="lang-btn">EN</button>
+          <button id="lang-de" class="lang-btn">DE</button>
+        </div>
+      </div>
+      <p class="sub" data-i18n="optSub"></p>
+    </header>
+
+    <ul id="editor" class="editor"></ul>
+    <datalist id="group-list"></datalist>
+    <button id="add" class="btn btn-ghost add-row" data-i18n="addGame"></button>
+
+    <section id="groups-sec" class="groups-sec" hidden>
+      <h2 data-i18n="groupsTitle"></h2>
+      <p class="sub" data-i18n="groupsSub"></p>
+      <div id="group-toggles" class="group-toggles"></div>
+    </section>
+
+    <section class="io">
+      <h2 data-i18n="ioTitle"></h2>
+      <p class="sub" data-i18n="ioSub"></p>
+      <div class="io-actions">
+        <button id="export" class="btn btn-ghost" data-i18n="exportBtn"></button>
+        <button id="import" class="btn btn-ghost" data-i18n="importBtn"></button>
+        <input id="import-file" type="file" accept="application/json" hidden />
+      </div>
+      <p id="io-msg" class="io-msg" role="status"></p>
+    </section>
+  </main>
+
+  <script src="lib.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
