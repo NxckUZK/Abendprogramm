@@ -4,6 +4,12 @@ A Chrome side-panel extension for a group's nightly web-game ritual: open the
 games, tick them off, track time, and keep the streak. Built with plain
 JavaScript and Manifest V3 — no build step, no dependencies.
 
+> **AI disclaimer** — this project is AI slop. Every line of code,
+> the UI, the theme, and this README were generated entirely by
+> [Claude Opus 4.8](https://www.anthropic.com/claude) (Anthropic) through
+> iterative prompting. No human wrote any source code directly.
+
+
 ## Features
 
 - **Side panel** that stays docked beside your tabs while you play.
