@@ -4,6 +4,7 @@
 const $ = (sel) => document.querySelector(sel);
 let lang = 'en';
 let history = {};
+let stats = {};
 const view = new Date(); // first of currently shown month
 view.setDate(1);
 let selected = null;
@@ -16,6 +17,7 @@ function ymd(d) {
 async function init() {
   lang = await getLang();
   history = await getHistory();
+  stats = await getStats();
   applyI18n(lang);
   drawWeekdays();
   draw();
@@ -58,6 +60,7 @@ function draw() {
     const cell = document.createElement('div');
     cell.className = 'cal-cell'
       + (entry ? ' played' : '')
+      + (entry && entry.full ? ' full' : '')
       + (date === today ? ' today' : '')
       + (date === selected ? ' sel' : '');
 
@@ -102,6 +105,8 @@ function detail(date) {
   total.className = 'detail-total';
   total.textContent = `${t(lang, 'calTotalTime')}: ${formatTime(entry.total)} · ${entry.done.length} ${t(lang, 'calCompleted')}`;
 
+  const dayStats = stats[date] || {};
+
   const list = document.createElement('ul');
   list.className = 'detail-list';
   entry.done.forEach((g) => {
@@ -123,11 +128,23 @@ function detail(date) {
     name.className = 'di-name';
     name.textContent = g.name;
 
+    li.append(fav, name);
+
+    // Captured score for this game on this day, if any.
+    const s = dayStats[g.id];
+    if (s && s.display) {
+      const badge = document.createElement('span');
+      badge.className = 'game-score' + (s.solved === false ? ' lost' : '');
+      badge.textContent = s.display;
+      badge.title = `${s.score ?? 0} pts`;
+      li.append(badge);
+    }
+
     const time = document.createElement('span');
     time.className = 'di-time';
     time.textContent = formatTime(g.seconds);
 
-    li.append(fav, name, time);
+    li.append(time);
     list.appendChild(li);
   });
 
@@ -139,6 +156,7 @@ $('#next').addEventListener('click', () => { view.setMonth(view.getMonth() + 1);
 
 chrome.storage.onChanged.addListener(async (changes) => {
   if (changes.history) { history = await getHistory(); draw(); }
+  if (changes.stats) { stats = await getStats(); draw(); }
   if (changes.lang) { lang = changes.lang.newValue; applyI18n(lang); drawWeekdays(); draw(); }
 });
 

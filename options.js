@@ -10,8 +10,11 @@ async function load() {
   games = await getGames();
   applyI18n(lang);
   markLang();
+  $('#auto-advance').checked = await getAutoAdvance();
   draw();
 }
+
+$('#auto-advance').addEventListener('change', (e) => setAutoAdvance(e.target.checked));
 
 function markLang() {
   $('#lang-en').classList.toggle('active', lang === 'en');

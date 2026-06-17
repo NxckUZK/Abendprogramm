@@ -48,6 +48,9 @@ const I18N = {
     statsPlayed: 'played', statsAvg: 'avg', statsBest: 'best', statsLast: 'last',
     statsEmpty: 'No stats yet. Play a supported game and press Share — your result lands here.',
     statsScoreHint: 'Score is normalised 0–100 so different games compare.',
+    behaviorTitle: 'Automation',
+    behaviorSub: 'Share a supported game and it ticks off + opens the next on its own.',
+    autoAdvanceLabel: 'Auto-advance when a result is shared',
   },
   de: {
     countLabel: 'heute erledigt', nextBtn: 'Fertig → weiter', openAll: 'Alle öffnen',
@@ -77,6 +80,9 @@ const I18N = {
     statsPlayed: 'gespielt', statsAvg: 'Ø', statsBest: 'Bestwert', statsLast: 'zuletzt',
     statsEmpty: 'Noch keine Stats. Spiel ein unterstütztes Spiel und drück Teilen — dein Ergebnis landet hier.',
     statsScoreHint: 'Score ist auf 0–100 normalisiert, damit Spiele vergleichbar sind.',
+    behaviorTitle: 'Automatik',
+    behaviorSub: 'Teile ein unterstütztes Spiel — es wird automatisch abgehakt und das nächste geöffnet.',
+    autoAdvanceLabel: 'Automatisch weiterschalten, wenn ein Ergebnis geteilt wird',
   },
 };
 
@@ -133,6 +139,9 @@ function localSet(o) { return new Promise((r) => chrome.storage.local.set(o, r))
 
 async function getLang() { return await syncGet('lang', defaultLang()); }
 async function setLang(l) { await syncSet({ lang: l }); }
+// When on, capturing a game's share result also ticks it off and opens the next.
+async function getAutoAdvance() { return await syncGet('autoAdvance', true); }
+async function setAutoAdvance(v) { await syncSet({ autoAdvance: !!v }); }
 async function getGames() { return await syncGet('games', DEFAULT_GAMES); }
 async function setGames(games) { await syncSet({ games }); }
 async function getDisabledGroups() { return await syncGet('disabledGroups', []); }
@@ -230,9 +239,13 @@ async function recordHistory() {
     return { id, name: g.name || hostOf(g.url), url: g.url || '', seconds: Math.round(x.perGame[id] || 0) };
   });
   const total = Math.round(Object.values(x.perGame).reduce((a, b) => a + b, 0));
+  // Was the night completed? (all of today's active games done) — drives the
+  // green calendar highlight. Recorded per day so it survives list changes.
+  const active = await getActiveGames();
+  const full = active.length > 0 && active.every((g) => p.done[g.id]);
   const hist = await getHistory();
   if (done.length === 0 && total === 0) delete hist[todayStr()];
-  else hist[todayStr()] = { done, total };
+  else hist[todayStr()] = { done, total, full };
   await localSet({ history: hist });
 }
 

@@ -33,9 +33,35 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 // Parsed game stats arrive here from adapters/relay.js (via stats.js).
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'abendprogramm-stat' && msg.stat) {
-    saveStat(msg.stat.game, msg.stat).then(() => sendResponse({ ok: true }));
+    handleStat(msg.stat, sender).then(() => sendResponse({ ok: true }));
     return true; // keep the channel open for the async response
   }
 });
+
+async function handleStat(stat, sender) {
+  await saveStat(stat.game, stat);
+  if (!(await getAutoAdvance())) return;
+
+  // Match the shared game to a list entry by host (parser ids needn't equal the
+  // user's game ids), then run the "done → next" flow automatically.
+  const tabUrl = (sender && sender.tab && sender.tab.url) || stat.url || '';
+  const host = hostOf(tabUrl);
+  const game = (await getActiveGames()).find((g) => g.url && hostOf(g.url) === host);
+  if (!game) return;
+
+  const p = await getProgress();
+  if (p.done[game.id]) return; // already ticked off — don't re-open anything.
+
+  await setDone(game.id, true); // banks time, credits streak, records history
+  const { games, doneMap } = await getSummary();
+  const next = games.find((g) => !doneMap[g.id]);
+  if (next && next.url) {
+    await chrome.tabs.create({ url: next.url, active: true });
+    await setActiveGame(next.id);
+  } else {
+    await setActiveGame(null); // nothing left tonight — pause the clock
+  }
+  await updateBadge();
+}
